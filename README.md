@@ -2,10 +2,10 @@
 
 Official implementation for the code used in: Learning to Suppress Tremors: A Deep Reinforcement Learning-Enabled Soft Exoskeleton for Parkinson's Patients
 
-# Usage:
+## Usage:
 
 
-# Software
+## Software
 
 Results were originally collected with:
 
