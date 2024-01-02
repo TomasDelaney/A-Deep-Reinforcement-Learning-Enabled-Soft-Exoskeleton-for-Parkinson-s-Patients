@@ -1,0 +1,381 @@
+<?xml version="1.0"?>
+<robot name="base">
+    <link name="robot_base">
+        <collision name="base">
+            <origin xyz="0.000000 0.000000 0.600000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.200000 0.700000 1.200000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="revolute" name="shoulderzjoint">
+        <axis xyz="0 0 1" />
+        <limit lower="-1.3962633609772" upper="1.3962633609772" velocity="6.2831854820251" effort="40.0" />
+        <parent link="robot_base" />
+        <child link="auxlink1" />
+        <origin xyz="0.010000 -0.475000 1.200000" rpy="-3.141593 3.141593 -3.141593" />
+    </joint>
+    <link name="auxlink1">
+        <inertial>
+            <origin rpy="-3.141593 3.141593 -3.141593" xyz="0.000000 0.000000 0.000000" />
+            <inertia iyy="0.00058960002794266" iyz="0.0" ixx="0.00058960002794266" ixy="0.0" izz="0.0001124999968335" ixz="0.0" />
+            <mass value="0.20000000298023" />
+        </inertial>
+        <collision name="aux_link1">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.100000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+    </link>
+    <joint type="revolute" name="shoulderyjoint">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.69813168048859" upper="2.8187066316605" velocity="6.2831854820251" effort="80.0" />
+        <parent link="auxlink1" />
+        <child link="auxlink2" />
+        <origin xyz="0.000000 0.000000 0.000000" rpy="-1.570796 3.141593 -3.141593" />
+    </joint>
+    <link name="auxlink2">
+        <inertial>
+            <origin rpy="1.570796 3.141593 -3.141593" xyz="0.000000 0.000000 0.000000" />
+            <inertia iyy="0.00058960002794266" iyz="0.0" ixx="0.00058960002794266" ixy="0.0" izz="0.0001124999968335" ixz="0.0" />
+            <mass value="0.20000000298023" />
+        </inertial>
+        <collision name="aux_link2">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="1.570796 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.100000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+    </link>
+    <joint type="revolute" name="shoulderxjoint">
+        <axis xyz="0 0 1" />
+        <limit lower="-2.6441738605499" upper="0.78539800643921" velocity="6.2831854820251" effort="50.0" />
+        <parent link="auxlink2" />
+        <child link="humerus" />
+        <origin xyz="0.000000 0.000000 0.000000" rpy="1.570796 3.141593 1.570796" />
+    </joint>
+    <link name="humerus">
+        <inertial>
+            <origin rpy="-0.000000 -1.570796 0.000000" xyz="0.230000 0.000000 0.000000" />
+            <inertia iyy="0.05895833298564" iyz="0.0" ixx="0.05895833298564" ixy="0.0" izz="0.011250000447035" ixz="0.0" />
+            <mass value="2.0" />
+        </inertial>
+        <collision name="humerus">
+            <origin xyz="0.230000 0.000000 0.000000" rpy="0.000000 -1.570796 0.000000" />
+            <geometry>
+                <box size="0.150000 0.150000 0.400000" />
+            </geometry>
+        </collision>
+    </link>
+    <joint type="revolute" name="elbowyjoint">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.034906584769487" upper="2.6179938726127" velocity="6.2831854820251" effort="25.0" />
+        <parent link="humerus" />
+        <child link="auxlink3" />
+        <origin xyz="0.480000 0.000000 0.000000" rpy="1.570796 -1.570796 0.000000" />
+    </joint>
+    <link name="auxlink3">
+        <inertial>
+            <origin rpy="1.570796 3.141593 -3.141593" xyz="0.000000 0.500000 -0.000000" />
+            <inertia iyy="0.00039539280435958" iyz="0.0" ixx="0.00039539280435958" ixy="0.0" izz="3.5410318407441e-05" ixz="0.0" />
+            <mass value="0.11219999939203" />
+        </inertial>
+        <collision name="aux_link3">
+            <origin xyz="0.000000 0.500000 -0.000000" rpy="1.570796 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.100000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+    </link>
+    <joint type="revolute" name="elbowzjoint">
+        <axis xyz="0 0 1" />
+        <limit lower="-1.5184364318848" upper="1.3962633609772" velocity="6.2831854820251" effort="50.0" />
+        <parent link="auxlink3" />
+        <child link="alkar" />
+        <origin xyz="0.000000 0.000000 -0.000000" rpy="1.570796 3.141593 -3.141593" />
+    </joint>
+    <link name="alkar">
+        <inertial>
+            <origin rpy="-3.141593 3.141593 -3.141593" xyz="0.005234 0.000000 -0.245137" />
+            <inertia iyy="0.039536823770183" iyz="0.0" ixx="0.039536823770183" ixy="0.0" izz="0.0035406111384836" ixz="0.0" />
+            <mass value="1.1219999790192" />
+        </inertial>
+        <collision name="alkar">
+            <origin xyz="0.005234 0.000000 -0.245137" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.100000 0.100000 0.400000" />
+            </geometry>
+        </collision>
+    </link>
+    <joint type="prismatic" name="act12j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="alkar" />
+        <child link="k12" />
+        <origin xyz="0.080234 -0.000000 -0.220137" rpy="3.141593 3.089233 3.141593" />
+    </joint>
+    <link name="k12">
+        <collision name="k12">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act22j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="alkar" />
+        <child link="k22" />
+        <origin xyz="-0.069766 -0.000000 -0.220137" rpy="3.141593 3.089233 3.141593" />
+    </joint>
+    <link name="k22">
+        <collision name="k22">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act52j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="humerus" />
+        <child link="k52" />
+        <origin xyz="0.300000 0.000000 0.075000" rpy="-0.000000 4.590216 -0.000000" />
+    </joint>
+    <link name="k52">
+        <collision name="k52">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act32j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="humerus" />
+        <child link="k32" />
+        <origin xyz="0.200000 0.000000 0.075000" rpy="-0.000000 4.590216 -0.000000" />
+    </joint>
+    <link name="k32">
+        <collision name="k32">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act11j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="humerus" />
+        <child link="k11" />
+        <origin xyz="0.250000 0.000000 0.075000" rpy="-0.000000 4.590216 -0.000000" />
+    </joint>
+    <link name="k11">
+        <collision name="k11">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act72j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="humerus" />
+        <child link="k72" />
+        <origin xyz="0.300000 0.000000 -0.075000" rpy="-0.000000 4.590216 -0.000000" />
+    </joint>
+    <link name="k72">
+        <collision name="k72">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act42j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="humerus" />
+        <child link="k42" />
+        <origin xyz="0.200000 0.000000 -0.075000" rpy="-0.000000 4.590216 -0.000000" />
+    </joint>
+    <link name="k42">
+        <collision name="k42">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act21j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="humerus" />
+        <child link="k21" />
+        <origin xyz="0.250000 0.000000 -0.075000" rpy="-0.000000 4.590216 -0.000000" />
+    </joint>
+    <link name="k21">
+        <collision name="k21">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act62j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="humerus" />
+        <child link="k62" />
+        <origin xyz="0.250000 -0.075000 0.000000" rpy="-0.000000 4.590216 -0.000000" />
+    </joint>
+    <link name="k62">
+        <collision name="k62">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act51j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="robot_base" />
+        <child link="k51" />
+        <origin xyz="0.150000 -0.275000 0.900000" rpy="-3.141593 3.141593 -3.141593" />
+    </joint>
+    <link name="k51">
+        <collision name="k51">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act31j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="robot_base" />
+        <child link="k31" />
+        <origin xyz="0.150000 -0.275000 1.100000" rpy="-3.141593 3.141593 -3.141593" />
+    </joint>
+    <link name="k31">
+        <collision name="k31">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act71j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="robot_base" />
+        <child link="k71" />
+        <origin xyz="-0.150000 -0.275000 0.900000" rpy="-3.141593 3.141593 -3.141593" />
+    </joint>
+    <link name="k71">
+        <collision name="k71">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act41j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="robot_base" />
+        <child link="k41" />
+        <origin xyz="-0.150000 -0.275000 1.100000" rpy="-3.141593 3.141593 -3.141593" />
+    </joint>
+    <link name="k41">
+        <collision name="k41">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+    <joint type="prismatic" name="act61j">
+        <axis xyz="0 0 1" />
+        <limit lower="-0.5" upper="0.5" velocity="1.0" effort="50.0" />
+        <parent link="robot_base" />
+        <child link="k61" />
+        <origin xyz="0.010000 -0.475000 1.290000" rpy="-3.141593 3.141593 -3.141593" />
+    </joint>
+    <link name="k61">
+        <collision name="k61">
+            <origin xyz="0.000000 0.000000 0.000000" rpy="-3.141593 3.141593 -3.141593" />
+            <geometry>
+                <box size="0.010000 0.100000 0.100000" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="1.0" />
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        </inertial>
+    </link>
+</robot>
