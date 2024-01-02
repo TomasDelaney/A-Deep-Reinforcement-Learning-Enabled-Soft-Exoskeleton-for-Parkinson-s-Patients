@@ -11,7 +11,7 @@ from Utilities.measure_script_time_ import seconds_to_hms
 from Utilities.calculate_arm_end_effector_points import distance_3d, forward_kinematics
 import pybullet as p
 import pybullet_utils.bullet_client as bc
-import multiprocessing
+
 
 if __name__ == "__main__":
     # Record the start time
@@ -83,10 +83,6 @@ if __name__ == "__main__":
     avg_std_tremor = []
     median_tremor_sup = []
     median_std_tremor_sup = []
-
-    # multiprocessing variables
-    num_processes = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(processes=num_processes)
 
     # load the model if necessary
     if load:
