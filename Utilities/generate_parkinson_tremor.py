@@ -2,14 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def generate_tremor_frequency(episode_length):
+def generate_tremor_frequency(episode_length, dt=1/40):
     # frequency components
     first_frequency = np.random.uniform(low=4, high=6)
     second_frequency = np.random.uniform(low=8, high=10)
     white_noise = np.random.rand(episode_length) * 0.001
 
     # generation components
-    dt = 1 / 40  # 1 / sample rate!
     generated_time_steps = np.linspace(0, episode_length * dt, episode_length)
 
     # waves
@@ -26,16 +25,16 @@ def generate_tremor_amplitude():
     return first_amplitude, second_amplitude
 
 
-def generate_joint_torques_train(episode_length, all_seven, torque_sequence):
+def generate_joint_torques_train(episode_length, all_seven, torque_sequence, dt):
     # calculates the generated torque values at each joint DoF from the generated accelerometer data
     # clear proximal-distal increase in the magnitude-> the further away the joint the bigger amplitude it has
     # use magnitude ratios to find the corresponding joint torque amplitudes
     # assumption frequencies and phases are equal(Davidson and Charles)
-    # max tremor values: shoulder: (-10,10), elbow: (-5,5), wrist: (-0.5, 0.5)
+    # max tremor values: shoulder: (-10,10), elbow: (-5,5), wrist: (-0.5, 0.5) Nm
     input_seq = torque_sequence
-    first_wave, second_wave, noise = generate_tremor_frequency(episode_length=episode_length)
+    first_wave, second_wave, noise = generate_tremor_frequency(episode_length=episode_length, dt=dt)
 
-    # generate all seven or only the first 4 of the tremor values
+    # safeguard to handle accidental cases where the last 3 arm joint axes are set to other than 0
     if not all_seven:
         input_seq[-3:] = np.array([0, 0, 0])
 

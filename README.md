@@ -23,12 +23,12 @@ control's performance.
 
 ### Trained Agents:
 
-The trained agents folder contains the actor, critic and encoder neural networks used for
+The trained agents' folder contains the actor, critic and encoder neural networks used for
 the evaluation of each tremor type.
 
 ### Utilities:
 
-The utilities folder contains various scripts used in the physical simulations joint angle and end
+The utilities' folder contains various scripts used in the physical simulations joint angle and end
 effector position calculations. As well as various scripts used for the evaluation and plotting of
 the results.
 

@@ -1,4 +1,5 @@
 import numpy as np
+import argparse
 import sys
 import time
 from Environment.Exoskeleton_env import ExoskeletonEnv_train
@@ -17,8 +18,29 @@ if __name__ == "__main__":
     start_time = time.time()
     np.set_printoptions(precision=3, floatmode='fixed')
 
+    # arguments
+    parser = argparse.ArgumentParser()
+    # RL
+    parser.add_argument("--seed", default=0, type=int)
+    parser.add_argument("--num_eval_episodes", default=100, type=int)
+    # Physical simulation
+    parser.add_argument("--num_reference_motions", default=8, type=int)
+    parser.add_argument("--use_all_dof", default=False, action=argparse.BooleanOptionalAction)
+    parser.add_argument("--tremor_sequence", default=[0, 1, 0, 1, 0, 0, 0])
+    # Anatomical properties
+    parser.add_argument("--mass", default=81.5, type=float, help="In kg")
+    parser.add_argument("--humerus_length", default=0.4, type=float, help="In meters")
+    parser.add_argument("--humerus_radius", default=0.05, type=float, help="In meters")
+    parser.add_argument("--forearm_length", default=0.4, type=float, help="In meters")
+    parser.add_argument("--forearm_radius", default=0.05, type=float, help="In meters")
+    parser.add_argument("--hand_length", default=0.05, type=float, help="In meters")
+    # Exoskeleton properties
+    parser.add_argument("--max_force_elbow", default=20, type=float)
+    parser.add_argument("--max_force_shoulder", default=40, type=float)
+    args = parser.parse_args()
+
     # set the seed
-    set_seeds(0)  # 17,31,42,69,81 are the used seeds   ---31. gives best results
+    set_seeds(args.seed)
 
     # Create an instance of the Logger class
     logger = Logger("output.txt")
@@ -27,34 +49,20 @@ if __name__ == "__main__":
     sys.stdout = logger
 
     # values for the simulation
-    mass = 81.5  # in kg
-    u_arm_weight, l_arm_weight, h_weight = calculate_body_part_mass(mass)
-    humerus_length = 0.4
-    forearm_length = 0.4
-    humerus_radius = 0.05
-    forearm_radius = 0.05
-    hand_length = 0.05
-
-    # tremor
-    tremor_sequence = np.array([False, True, False, True, False, False, False])
-
+    u_arm_weight, l_arm_weight, h_weight = calculate_body_part_mass(args.mass)
     envs = []
-    for i in range(8):
+    for i in range(args.num_reference_motions):
         client = bc.BulletClient(connection_mode=p.DIRECT)
-        env = ExoskeletonEnv_train(evaluation=True, dummy_shift=False, hum_weight=u_arm_weight, forearm_weight=l_arm_weight, forearm_height=forearm_length,
-                                   forearm_radius=forearm_radius, hum_height=humerus_length, hum_radius=humerus_radius, hand_weight=h_weight, hand_radius=hand_length,
-                                   mode=3, use_all_dof=False, tremor_axis=1, reference_motion_file_num=str(i), tremor_sequence=[0, 1, 0, 1, 0, 0, 0], max_force_shoulder=40,
-                                   max_force_elbow=20, client=client)
+        env = ExoskeletonEnv_train(evaluation=True, dummy_shift=False, hum_weight=u_arm_weight, forearm_weight=l_arm_weight, forearm_height=args.forearm_length,
+                                   forearm_radius=args.forearm_radius, hum_height=args.humerus_length, hum_radius=args.humerus_radius, hand_weight=h_weight, hand_radius=args.hand_length,
+                                   use_all_dof=False, reference_motion_file_num=str(i), tremor_sequence=args.tremor_sequence, max_force_shoulder=args.max_force_shoulder,
+                                   max_force_elbow=args.max_force_elbow, client=client)
         envs.append(env)
-    # delete the [0,0,0,0] env or not?
 
     # values for training
-    num_eval_episodes = 100
-    mode_steps = 0
     steps_count = 0
     prev_step_count = 0
     prev_buffer_save = 0
-    empty_list = []
     scores = []
     agent_rew = []
     tremor_torque_suppression_individual_avg = []
@@ -72,9 +80,9 @@ if __name__ == "__main__":
 
     # values for evaluation of the training
     avg_agent_rew = []
-    median_agent_sup = [empty_list for _, _ in enumerate(envs)]
+    median_agent_sup = [[] for _, _ in enumerate(envs)]
     std_score = []
-    std_median_sup = [empty_list for _, count in enumerate(envs)]
+    std_median_sup = [[] for _, count in enumerate(envs)]
     max_episode_lengths = [env.return_max_length() for env in envs]
 
     # global training variables
@@ -98,11 +106,11 @@ if __name__ == "__main__":
     torque_maxes = np.zeros((len(envs), 7))
 
     # evaluation holders
-    evaluation_percent = np.zeros(num_eval_episodes)
-    evaluation_amplitude_percent = np.zeros(num_eval_episodes)
-    evaluation_angle_amplitude_percent = np.zeros((num_eval_episodes, 7))
-    evaluation_torque_suppression_some = np.zeros(num_eval_episodes)
-    evaluation_torque_all_axis = np.zeros(num_eval_episodes)
+    evaluation_percent = np.zeros(args.num_eval_episodes)
+    evaluation_amplitude_percent = np.zeros(args.num_eval_episodes)
+    evaluation_angle_amplitude_percent = np.zeros((args.num_eval_episodes, 7))
+    evaluation_torque_suppression_some = np.zeros(args.num_eval_episodes)
+    evaluation_torque_all_axis = np.zeros(args.num_eval_episodes)
 
     # variables for the histogram and the torque plots
     highest_score = 0
@@ -111,7 +119,7 @@ if __name__ == "__main__":
     tremor_unsup_torque_plot_values = None
 
     # test the running of the environment
-    for k in range(num_eval_episodes):
+    for k in range(args.num_eval_episodes):
         for i, env in enumerate(envs):
             observation[i], score[i] = env.reset()
             torque_places[i], torque_maxes[i] = env.return_generated_tremor_data()
@@ -162,7 +170,6 @@ if __name__ == "__main__":
                     score[i] += reward
                     ep_len[i] += 1
                     steps_count += 1
-                    mode_steps += 1
                     torque_values[i] = torq_val
                     tremor_torque_values[i] = tremor_torq_val
                     observation[i] = observation_[i]
@@ -186,9 +193,9 @@ if __name__ == "__main__":
                     unsuppressed_angles = np.radians(tremor_ampl_val) + non_tremor_angle_values
 
                     # calculate end effectors positions
-                    end_effector_position_joint = forward_kinematics(non_tremor_angle_values, humerus_length, forearm_length, hand_length)
-                    end_effector_position1 = forward_kinematics(suppressed_angles, humerus_length, forearm_length, hand_length)
-                    end_effector_position2 = forward_kinematics(unsuppressed_angles, humerus_length, forearm_length, hand_length)
+                    end_effector_position_joint = forward_kinematics(non_tremor_angle_values, args.humerus_length, args.forearm_length, args.hand_length)
+                    end_effector_position1 = forward_kinematics(suppressed_angles, args.humerus_length, args.forearm_length, args.hand_length)
+                    end_effector_position2 = forward_kinematics(unsuppressed_angles, args.humerus_length, args.forearm_length, args.hand_length)
 
                     distance_suppressed = distance_3d(end_effector_position_joint, end_effector_position1)  # Distance from the origin
                     distance_unsuppressed = distance_3d(end_effector_position_joint, end_effector_position2)  # Distance from the origin
@@ -202,8 +209,8 @@ if __name__ == "__main__":
                     tremor_reduction_ampl_total = ((distance_suppressed - distance_unsuppressed) / distance_unsuppressed) * 100
 
                     # count the occurrences of tremor reduction alongside the axis # todo: get the cases where the involved axis are 0
-                    tremor_when_reduction[i, 0] += np.sum(tremor_reduction[tremor_sequence] >= 0)
-                    tremor_when_reduction[i, 1] += np.sum(tremor_reduction[tremor_sequence] < 0)
+                    tremor_when_reduction[i, 0] += np.sum(tremor_reduction[args.tremor_sequence] >= 0)
+                    tremor_when_reduction[i, 1] += np.sum(tremor_reduction[args.tremor_sequence] < 0)
 
                     if np.any(tremor_reduction[:4] < 0):
                         tremor_reduction_in_episode[i] += 1

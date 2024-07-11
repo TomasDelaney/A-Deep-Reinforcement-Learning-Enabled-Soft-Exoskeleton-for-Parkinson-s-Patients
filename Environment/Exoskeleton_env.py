@@ -25,8 +25,8 @@ class ExoskeletonEnv_train(gym.Env):
     """Custom Environment that follows gym interface"""
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, evaluation, hum_weight, hum_radius, hum_height, forearm_weight, forearm_radius, forearm_height, hand_weight, hand_radius, dummy_shift, mode, use_all_dof,
-                 tremor_axis, reference_motion_file_num, tremor_sequence, max_force_shoulder, max_force_elbow, client):
+    def __init__(self, evaluation, hum_weight, hum_radius, hum_height, forearm_weight, forearm_radius, forearm_height, hand_weight, hand_radius, dummy_shift, use_all_dof,
+                 reference_motion_file_num, tremor_sequence, max_force_shoulder, max_force_elbow, client):
         super(ExoskeletonEnv_train, self).__init__()
         # determine if we want to train an agent in the environment or evaluate it: boolean value
         self.dummy_shift = dummy_shift
@@ -36,16 +36,15 @@ class ExoskeletonEnv_train(gym.Env):
         # the episode count in the texts and simulation time space
         self.counts = 1
 
+        # define the time steps of the simulation
+        self.dt = 1 / 40
+
         # set the tremor generation mode if all seven DoF-s are used o only the first 4
         self.use_all_dof = use_all_dof
-        self.tremor_num = tremor_axis
         self.tremor_input_sequence = tremor_sequence
 
         # counter for which reference motion to load
         self.env_counter = 0
-
-        # which training mode we are in the curriculum learning
-        self.mode = mode
 
         self.processed_imu_data = None  # dictionary of numpy arrays, contains the target values
         self.max_count = None  # size of a numpy array
@@ -309,8 +308,7 @@ class ExoskeletonEnv_train(gym.Env):
         self.client.setGravity(0, 0, -9.81)  # todo: for dynamic randomization change this
 
         # define the patients data
-        self.exoskeleton_sim_model = ExoskeletonSimModel(hum_weight=hum_weight, hum_radius=hum_radius, hum_height=hum_height, forearm_weight=forearm_weight,
-                                                         forearm_radius=forearm_radius, forearm_height=forearm_height, dummy_shift=dummy_shift, client=self.client)
+        self.exoskeleton_sim_model = ExoskeletonSimModel(dummy_shift=dummy_shift, client=self.client)
 
         # normalization values for the tremor torques
         self.shoulder_norm_val = 10
@@ -335,9 +333,6 @@ class ExoskeletonEnv_train(gym.Env):
         '''variable regarding the rewards'''
         # if a type of reward exceeds this (other than torque reward)-> set the next reward values to zero
         self.early_termination = False
-
-        # define the time steps of the simulation
-        self.dt = 1 / 40
 
         # matrices for tremor propagation
         self.I, self.D, self.S = seven_by_seven()
@@ -382,7 +377,7 @@ class ExoskeletonEnv_train(gym.Env):
         self.max_count = self.processed_imu_data["elbow_joint_y_positions"].size  # size of a numpy array
         self.ep_state_values = define_empty_dict_for_env(self.max_count)
         self.tremor_torque_values, self.tremor_torque_places = generate_joint_torques_train(episode_length=self.max_count, all_seven=self.use_all_dof,
-                                                                                            torque_sequence=self.tremor_input_sequence)
+                                                                                            torque_sequence=self.tremor_input_sequence, dt=self.dt)
 
         # increment env counter
         self.env_counter += 1
@@ -719,27 +714,12 @@ class ExoskeletonEnv_train(gym.Env):
 
         # the weight of the reward function components
         weight_axis_reward = 0.5
-        weight_torque_reward = 0.95
-        weight_actuator_reward = 0.05
-        weight_actuator_smoothness_reward = 0
-        weight_unwanted_component = 0.05
+        weight_torque_reward = 0.9
+        weight_actuator_force_magnitude_reward = 0.05
+        weight_actuator_smoothness_reward = 0.05
+        weight_unwanted_component = 0.4
 
         if not done and self.early_termination is False:
-            # set the reward function according to curriculum learning
-            if self.mode == 1:
-                weight_axis_reward = 0.5
-                weight_torque_reward = 1
-                weight_actuator_smoothness_reward = 0
-                weight_actuator_reward = 0
-            elif self.mode == 2:
-                weight_torque_reward = 0.95
-                weight_actuator_smoothness_reward = 0
-                weight_actuator_reward = 0.05
-            elif self.mode == 3:
-                weight_torque_reward = 0.9
-                weight_actuator_smoothness_reward = 0.05
-                weight_actuator_reward = 0.05
-                weight_unwanted_component = 0.0
 
             # tremor reward values
             # sparse reward enforcing that tremor reduction strategies involve all effected axis
@@ -755,7 +735,6 @@ class ExoskeletonEnv_train(gym.Env):
                 if self.tremor_torque_places[index] == 1:  # todo: if no tremor reduction minimize it compared to 0
                     sum_torque += (abs(torque_values[index]) - abs(self.T[index])) / abs(self.T[index]) + 1
                 else:
-                    weight_unwanted_component = 0.4
                     sum_unwanted += abs(torque_values[index])
 
             # actuator force reward part
@@ -766,17 +745,17 @@ class ExoskeletonEnv_train(gym.Env):
 
             # apply e^-x func
             torque_reward = np.exp(-sum_torque + 1e-8)
-            smoothness_reward = np.exp(-(sum_smoothness / 15) + 1e-8)
-            actuator_reward = np.exp(-(sum_actions / 30) + 1e-8)
-            unwanted_reward = np.exp(-(sum_unwanted / 15) + 1e-8)
+            smoothness_reward = np.exp(-(sum_smoothness / ((self.max_output_elbow + self.max_output_shoulder)/4)) + 1e-8)  # scaling is applied by division
+            actuator_reward = np.exp(-(sum_actions / ((self.max_output_elbow + self.max_output_shoulder)/2)) + 1e-8)  # scaling is applied by division
+            unwanted_reward = np.exp(-(sum_unwanted / ((self.max_output_elbow + self.max_output_shoulder)/4)) + 1e-8)  # scaling is applied by division
 
-            # normalization value so reward falls into [0,1] todo: is it needed or not?
-            max_reward = np.sum(self.tremor_input_sequence) * weight_axis_reward + weight_torque_reward + weight_actuator_reward \
+            # normalization value so reward falls into [0,1]
+            max_reward = np.sum(self.tremor_input_sequence) * weight_axis_reward + weight_torque_reward + weight_actuator_force_magnitude_reward \
                          + weight_actuator_smoothness_reward + weight_unwanted_component
 
             # sum of the reward function
             reward = (weight_axis_reward * involved_axis + weight_torque_reward * torque_reward +
-                      weight_actuator_smoothness_reward * smoothness_reward + weight_actuator_reward * actuator_reward
+                      weight_actuator_smoothness_reward * smoothness_reward + weight_actuator_force_magnitude_reward * actuator_reward
                       + weight_unwanted_component * unwanted_reward) / max_reward
 
         # for debugging
@@ -948,7 +927,7 @@ if __name__ == "__main__":
     client = bc.BulletClient(connection_mode=p.DIRECT)
 
     env = ExoskeletonEnv_train(evaluation=True, dummy_shift=False, hum_weight=u_arm_weight, forearm_weight=l_arm_weight, forearm_height=0.4, forearm_radius=0.15, hum_height=0.4,
-                               hum_radius=0.15, hand_weight=h_weight, hand_radius=0.05, mode=1, use_all_dof=False, tremor_axis=1, reference_motion_file_num=str(7),
+                               hum_radius=0.15, hand_weight=h_weight, hand_radius=0.05, use_all_dof=False, reference_motion_file_num=str(7),
                                tremor_sequence=np.array([0, 0, 0, 1, 0, 0, 0]), max_force_shoulder=30, max_force_elbow=18, client=client)
 
     # test the running of the environment

@@ -6,14 +6,14 @@ import os
 
 
 class ExoskeletonSimModel:
-    def __init__(self, hum_weight, hum_radius, hum_height, forearm_weight, forearm_radius, forearm_height, dummy_shift,
+    def __init__(self, dummy_shift,
                  client):
         """
         :param: name: string
             name of objective
         """
         super(self.__class__, self).__init__()
-        file_name = "exo_v3.urdf"
+        file_name = "../Simulation/exo_v3.urdf"
         self.file_path = file_name
 
         self.client = client
