@@ -1,8 +1,7 @@
-
-'''
+"""
 This script calculates the forearm and upper arm masses based on:
     STANLEY PLAGENHOEF: Anatomical Data for Analyzing Human Motion research paper
-'''
+"""
 
 
 def calculate_body_part_mass(mass):

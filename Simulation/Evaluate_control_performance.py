@@ -4,14 +4,12 @@ import sys
 import time
 from Environment.Exoskeleton_env import ExoskeletonEnv_train
 from Agent.TD7_multi_agent import Agent
-from Utilities.calculate_body_part_mass_ import calculate_body_part_mass
 from Utilities.seed_setting_ import set_seeds
 from Utilities.Train_logger_ import Logger
 from Utilities.measure_script_time_ import seconds_to_hms
 from Utilities.calculate_arm_end_effector_points import distance_3d, forward_kinematics
 from Utilities.publication_plots import plot_histogram, plot_joint_torques
-import pybullet as p
-import pybullet_utils.bullet_client as bc
+
 
 if __name__ == "__main__":
     # Record the start time
@@ -28,15 +26,15 @@ if __name__ == "__main__":
     parser.add_argument("--use_all_dof", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--tremor_sequence", default=[0, 1, 0, 1, 0, 0, 0])
     # Anatomical properties
-    parser.add_argument("--mass", default=81.5, type=float, help="In kg")
-    parser.add_argument("--humerus_length", default=0.4, type=float, help="In meters")
-    parser.add_argument("--humerus_radius", default=0.05, type=float, help="In meters")
+    parser.add_argument("--mass", default=81.5, type=float, help="Total body mass in kg")
+    parser.add_argument("--humerus_length", default=0.4, type=float, help="Humerus length in meters")
+    parser.add_argument("--humerus_radius", default=0.05, type=float, help="Humerus radius in meters")
     parser.add_argument("--forearm_length", default=0.4, type=float, help="In meters")
     parser.add_argument("--forearm_radius", default=0.05, type=float, help="In meters")
     parser.add_argument("--hand_length", default=0.05, type=float, help="In meters")
     # Exoskeleton properties
-    parser.add_argument("--max_force_elbow", default=20, type=float)
-    parser.add_argument("--max_force_shoulder", default=40, type=float)
+    parser.add_argument("--max_force_elbow", default=20, type=float, help="Max force output of actuators 1,2")
+    parser.add_argument("--max_force_shoulder", default=40, type=float, help="Max force output of actuators 3,4,5,6,7")
     args = parser.parse_args()
 
     # set the seed
@@ -49,14 +47,12 @@ if __name__ == "__main__":
     sys.stdout = logger
 
     # values for the simulation
-    u_arm_weight, l_arm_weight, h_weight = calculate_body_part_mass(args.mass)
     envs = []
     for i in range(args.num_reference_motions):
-        client = bc.BulletClient(connection_mode=p.DIRECT)
-        env = ExoskeletonEnv_train(evaluation=True, dummy_shift=False, hum_weight=u_arm_weight, forearm_weight=l_arm_weight, forearm_height=args.forearm_length,
-                                   forearm_radius=args.forearm_radius, hum_height=args.humerus_length, hum_radius=args.humerus_radius, hand_weight=h_weight, hand_radius=args.hand_length,
+        env = ExoskeletonEnv_train(dummy_shift=False, weight=args.mass, forearm_height=args.forearm_length,
+                                   forearm_radius=args.forearm_radius, hum_height=args.humerus_length, hum_radius=args.humerus_radius, hand_radius=args.hand_length,
                                    use_all_dof=False, reference_motion_file_num=str(i), tremor_sequence=args.tremor_sequence, max_force_shoulder=args.max_force_shoulder,
-                                   max_force_elbow=args.max_force_elbow, client=client)
+                                   max_force_elbow=args.max_force_elbow)
         envs.append(env)
 
     # values for training
@@ -165,32 +161,32 @@ if __name__ == "__main__":
             # take step in the environment and store it
             for i, action in enumerate(actions):
                 if not done[i]:
-                    observation_[i], reward, done[i], actuator_torques, torq_val, ampl_val, tremor_torq_val, tremor_ampl_val, info = envs[i].step(action)
+                    observation_[i], reward, done[i], _, info = envs[i].step(action)
 
                     score[i] += reward
                     ep_len[i] += 1
                     steps_count += 1
-                    torque_values[i] = torq_val
-                    tremor_torque_values[i] = tremor_torq_val
+                    torque_values[i] = info["torque_val"]
+                    tremor_torque_values[i] = info["tremor_torque_val"]
                     observation[i] = observation_[i]
 
                     # tremor reduction metrics
-                    tremor_reduction = (abs(torq_val) - abs(tremor_torq_val)) / abs(tremor_torq_val) * 100
+                    tremor_reduction = (abs(info["torque_val"]) - abs(info["tremor_torque_val"])) / abs(info["tremor_torque_val"]) * 100
                     tremor_reduction = np.nan_to_num(tremor_reduction, nan=0, posinf=0, neginf=0)
 
                     # measure amplitude suppression in each joint axis angle
-                    tremor_reduction_ampl = (abs(ampl_val) - abs(tremor_ampl_val)) / abs(tremor_ampl_val) * 100
+                    tremor_reduction_ampl = (abs(info["ampl_val"]) - abs(info["tremor_ampl_val"])) / abs(info["tremor_ampl_val"]) * 100
                     tremor_reduction_ampl = np.nan_to_num(tremor_reduction_ampl, nan=0, posinf=0, neginf=0)
 
                     # measure total amplitude reduction in the movement | amplitude values to be used as not angles but cm values
                     # change the SAA and SFE angles to accommodate the D-H params
                     non_tremor_angle_values = np.radians(envs[i].return_original_joint_angles())
 
-                    ampl_val[0], ampl_val[1] = ampl_val[1], ampl_val[0]
-                    tremor_ampl_val[0], tremor_ampl_val[1] = tremor_ampl_val[1], tremor_ampl_val[0]
+                    info["ampl_val"][0], info["ampl_val"][1] = info["ampl_val"][1], info["ampl_val"][0]
+                    info["tremor_ampl_val"][0], info["tremor_ampl_val"][1] = info["tremor_ampl_val"][1], info["tremor_ampl_val"][0]
 
-                    suppressed_angles = np.radians(ampl_val) + non_tremor_angle_values
-                    unsuppressed_angles = np.radians(tremor_ampl_val) + non_tremor_angle_values
+                    suppressed_angles = np.radians(info["ampl_val"]) + non_tremor_angle_values
+                    unsuppressed_angles = np.radians(info["tremor_ampl_val"]) + non_tremor_angle_values
 
                     # calculate end effectors positions
                     end_effector_position_joint = forward_kinematics(non_tremor_angle_values, args.humerus_length, args.forearm_length, args.hand_length)

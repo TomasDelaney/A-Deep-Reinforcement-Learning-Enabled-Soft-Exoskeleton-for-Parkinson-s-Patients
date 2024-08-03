@@ -1,16 +1,14 @@
 import pybullet as p
-import sys
 import math
 import numpy as np
-import os
 
 
 class ExoskeletonSimModel:
-    def __init__(self, dummy_shift,
-                 client):
+    def __init__(self, dummy_shift, client):
         """
-        :param: name: string
-            name of objective
+        Pybullet simulation model, that models the exoskeleton-human skeleton interactions.
+        :param dummy_shift: An optional boolean parameter which accounts for the shift in the end position of the actuators
+        :param client: The Pybullet client where the simulation is running
         """
         super(self.__class__, self).__init__()
         file_name = "../Simulation/exo_v3.urdf"
@@ -87,24 +85,31 @@ class ExoskeletonSimModel:
         self.humerus_handle = None
         self.forearm_handle = None
 
-        # position vectors for the actuators  TODO: find the position vectors for revolute joints
+        # position vectors for the actuators
         self.shoulder_z_joint_pos_vect = np.zeros(3)
         self.shoulder_y_joint_pos_vect = np.zeros(3)
         self.shoulder_x_joint_pos_vect = np.zeros(3)
         self.elbow_y_joint_pos_vect = np.zeros(3)
         self.elbow_z_joint_pos_vect = np.zeros(3)
 
-    def init_human_anatomy(self, hum_weight, hum_radius, hum_height, forearm_weight, forearm_radius, forearm_height):
-        # define the anatomical characteristics of the person
-        pass
-
-    def set_joint_position(self, position):
+    def set_joint_position(self, position) -> None:
+        """
+        Function that sets the joint positions in the Pybullet simulation
+        :param position:
+        """
         # set the joint positions for the human joints
         self.client.setJointMotorControlArray(self.exo, self.human_joints,
                                               controlMode=p.POSITION_CONTROL,
                                               targetPositions=position)  # physicsClientId=self.exo
 
-    def get_actuator_positions(self):
+    def get_actuator_positions(self) -> np.ndarray:
+        """
+        Function that returns the actuator dummy positions
+
+        :return:
+            np.ndarray: in 14x3 shape, where 14 end effector points of the actuators (2 for each) are described by their
+            x, y and z coordinates
+        """
         # returns the coordinates of the actuator end point positions
         actuator_positions = np.zeros((14, 3))
         actuator_positions[0] = self.client.getLinkState(self.exo, linkIndex=self.act11_handle)[0]
@@ -140,7 +145,7 @@ class ExoskeletonSimModel:
 
         return actuator_positions
 
-    def get_actuator_pos_vect(self):
+    def get_actuator_pos_vect(self) -> dict:
         return_pos_vectors = {"actuator1": np.array([(self.act12_positions[0] - self.act_elbow_reference_positions[0]),
                                                      (self.act12_positions[1] - self.act_elbow_reference_positions[1]),
                                                      (self.act12_positions[2] - self.act_elbow_reference_positions[2]),
@@ -172,7 +177,7 @@ class ExoskeletonSimModel:
                               }
         return return_pos_vectors
 
-    def get_radius_vectors(self):
+    def get_radius_vectors(self) -> dict:
         # update reference dummy positions
         self.act_shoulder_reference_positions = self.client.getLinkState(self.exo, linkIndex=self.act_shoulder_handle)[0]
         self.act_elbow_reference_positions = self.client.getLinkState(self.exo, linkIndex=self.act_elbow_handle)[0]
@@ -187,7 +192,7 @@ class ExoskeletonSimModel:
 
         return radius_vectors
 
-    def get_force_components(self, forces):
+    def get_force_components(self, forces: np.array) -> dict:
         # returns the force components of the actuators
         # since actuator 1 and 2 actuate the elbow joint they only return two values: elbow y joint value and elbow z
         # 4 sides are required to get alfa and beta in the triangles.
@@ -280,8 +285,13 @@ class ExoskeletonSimModel:
 
         return force_components
 
-    def get_actuator_pos_vect(self):
-        # returns the positions (r) for the torque calculations
+    def get_actuator_pos_vect(self) -> dict:
+        """
+        Function that returns the r vector used in the observation vector
+
+        :return:
+            dict: of the actuators where each actuator has a different np.ndarray with the x,y and z components of the r vector.
+        """
         return_pos_vectors = {"actuator1": np.array([(self.act12_positions[0] - self.act_elbow_reference_positions[0]),
                                                      (self.act12_positions[1] - self.act_elbow_reference_positions[1]),
                                                      (self.act12_positions[2] - self.act_elbow_reference_positions[2]),
@@ -313,12 +323,26 @@ class ExoskeletonSimModel:
                               }
         return return_pos_vectors
 
-    def return_reference_dummy_pos(self):
-        # return the coordinates for the reference dummy vectors
+    def return_reference_dummy_pos(self) -> np.ndarray:
+        """
+        Return the coordinates for the reference dummy vectors, showing the positions of the shoulder and elbow joints.
+
+        Retrieves the current positions of the shoulder and elbow joints from the simulation and returns them as a NumPy array.
+
+        Returns:
+            np.ndarray: A 2x3 array where the first row contains the shoulder joint coordinates
+                        and the second row contains the elbow joint coordinates.
+        """
         self.act_shoulder_reference_positions = self.client.getLinkState(self.exo, linkIndex=self.act_shoulder_handle)[0]
         self.act_elbow_reference_positions = self.client.getLinkState(self.exo, linkIndex=self.act_elbow_handle)[0]
 
         return np.array([np.array(self.act_shoulder_reference_positions), np.array(self.act_elbow_reference_positions)])
 
-    def load_again(self):
-        self.exo = self.client.loadURDF(fileName=self.file_path, basePosition=[0, 0, 0.1], physicsClientId=self.client._client, useFixedBase=True)
+    def load_again(self) -> None:
+        """
+        Function that reloads the URDF scene of the simulation
+        """
+        self.exo = self.client.loadURDF(fileName=self.file_path,
+                                        basePosition=[0, 0, 0.1],
+                                        physicsClientId=self.client._client,
+                                        useFixedBase=True)

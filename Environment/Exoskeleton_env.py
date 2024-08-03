@@ -12,25 +12,36 @@ from Utilities.calculate_body_part_mass_ import calculate_body_part_mass
 from Utilities.generate_parkinson_tremor import generate_joint_torques_train
 from Utilities.differential_eq_matrices import seven_by_seven
 from Utilities.calculate_joint_angles import solve_diff_eq
-import random
 
-"""
--design consideration the exoskeleton cannot suppress elbow z values for tremors so why consider it
--initial vel and acc value setting for random initialization 0
-- wrist joint ang_acc and ang:vel only depend from the tremor
-"""
+
+def debug_exoskeleton_torque_feedback(action, actuator_torques) -> None:
+    """
+    Optional evaluation function for debugging. Prints out the exoskeleton torques present at each joint axes.
+    :param action: The
+    :param actuator_torques:
+    :return:
+    """
+    print("Given force in newtons: ", action)
+    print("Torques applied to shoulder y: ", "actuator 3: ", actuator_torques["actuator3"][1], "actuator 4: ", actuator_torques["actuator4"][1], "actuator 5: ",
+          actuator_torques["actuator5"][1], "actuator 7: ", actuator_torques["actuator7"][1], "actuator 6: ", actuator_torques["actuator6"][1])
+    print("Torques applied to shoulder x: ", "actuator 3: ", actuator_torques["actuator3"][0], "actuator 4: ", actuator_torques["actuator4"][0], "actuator 5: ",
+          actuator_torques["actuator5"][0], "actuator 7: ", actuator_torques["actuator7"][0], "actuator 6: ", actuator_torques["actuator6"][0])
+    print("Torques applied to shoulder z: ", "actuator 3: ", actuator_torques["actuator3"][2], "actuator 4: ", actuator_torques["actuator4"][2], "actuator 5: ",
+          actuator_torques["actuator5"][2], "actuator 7: ", actuator_torques["actuator7"][2], "actuator 6: ", actuator_torques["actuator6"][2])
+    print("Torques applied to elbow y: ", "actuator 1: ", abs(actuator_torques["actuator1"][1]), "actuator 2: ", -abs(actuator_torques["actuator2"][1]))
+    print()
 
 
 class ExoskeletonEnv_train(gym.Env):
-    """Custom Environment that follows gym interface"""
+    """Custom Environment that follows gym interface """
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, evaluation, hum_weight, hum_radius, hum_height, forearm_weight, forearm_radius, forearm_height, hand_weight, hand_radius, dummy_shift, use_all_dof,
-                 reference_motion_file_num, tremor_sequence, max_force_shoulder, max_force_elbow, client):
+    def __init__(self, hum_radius, hum_height, weight, forearm_radius, forearm_height, hand_radius, dummy_shift, use_all_dof,
+                 reference_motion_file_num, tremor_sequence, max_force_shoulder, max_force_elbow):
+        """"""
         super(ExoskeletonEnv_train, self).__init__()
-        # determine if we want to train an agent in the environment or evaluate it: boolean value
+        # Pybullet simulation parameters
         self.dummy_shift = dummy_shift
-        self.evaluate = evaluation  # true if we want to evaluate, false if we want to train
         self.file_num = reference_motion_file_num
 
         # the episode count in the texts and simulation time space
@@ -54,23 +65,21 @@ class ExoskeletonEnv_train(gym.Env):
         self.tremor_ang_acc_values = None  # shoulder x,y,z elbow y,z wrist x z
 
         # human skeleton anatomical properties
-        self.humerus_weight = hum_weight
+        self.humerus_weight, self.forearm_weight, self.hand_weight = calculate_body_part_mass(weight)
         self.humerus_radius = hum_radius
         self.humerus_height = hum_height
-        self.humerus_inertia_x = calculate_moments_of_inertia(hum_weight, hum_radius, hum_height)[0]
-        self.humerus_inertia_y = calculate_moments_of_inertia(hum_weight, hum_radius, hum_height)[1]
-        self.humerus_inertia_z = calculate_moments_of_inertia(hum_weight, hum_radius, hum_height)[2]
+        self.humerus_inertia_x = calculate_moments_of_inertia(self.humerus_weight, hum_radius, hum_height)[0]
+        self.humerus_inertia_y = calculate_moments_of_inertia(self.humerus_weight, hum_radius, hum_height)[1]
+        self.humerus_inertia_z = calculate_moments_of_inertia(self.humerus_weight, hum_radius, hum_height)[2]
 
-        self.forearm_weight = forearm_weight
         self.forearm_height = forearm_height
         self.forearm_radius = forearm_radius
-        self.forearm_inertia_x = calculate_moments_of_inertia(forearm_weight, forearm_radius, forearm_height)[0]
-        self.forearm_inertia_y = calculate_moments_of_inertia(forearm_weight, forearm_radius, forearm_height)[1]
-        self.forearm_inertia_z = calculate_moments_of_inertia(forearm_weight, forearm_radius, forearm_height)[2]
+        self.forearm_inertia_x = calculate_moments_of_inertia(self.forearm_weight, forearm_radius, forearm_height)[0]
+        self.forearm_inertia_y = calculate_moments_of_inertia(self.forearm_weight, forearm_radius, forearm_height)[1]
+        self.forearm_inertia_z = calculate_moments_of_inertia(self.forearm_weight, forearm_radius, forearm_height)[2]
 
-        self.hand_weight = hand_weight
         self.hand_radius = hand_radius
-        self.hand_inertia = calculate_moments_of_inertia_hand(hand_weight, hand_radius)
+        self.hand_inertia = calculate_moments_of_inertia_hand(self.hand_weight, hand_radius)
 
         # the action space for the environment (0-1) because it will be multiplied by 100
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(7,), dtype=np.float32)
@@ -302,10 +311,10 @@ class ExoskeletonEnv_train(gym.Env):
         self.observation_space = spaces.Box(low=low, high=high, dtype=np.float64)
 
         # Connect to pybullet
-        self.client = client
-        client.setAdditionalSearchPath(pybullet_data.getDataPath())
+        self.client = bc.BulletClient(connection_mode=p.DIRECT)  # for visual feedback use p.GUI
+        self.client.setAdditionalSearchPath(pybullet_data.getDataPath())
         self.client.resetSimulation()
-        self.client.setGravity(0, 0, -9.81)  # todo: for dynamic randomization change this
+        self.client.setGravity(0, 0, -9.81)  # for dynamic randomization this can be modified
 
         # define the patients data
         self.exoskeleton_sim_model = ExoskeletonSimModel(dummy_shift=dummy_shift, client=self.client)
@@ -320,7 +329,7 @@ class ExoskeletonEnv_train(gym.Env):
 
         # define a seed for the environment
         # self.seed()
-        self.state = self.initialize_movement(evaluate=self.evaluate)
+        self.state = self.initialize_movement()
 
         # holds the position values for the actuators
         self.position_vectors = None
@@ -329,10 +338,6 @@ class ExoskeletonEnv_train(gym.Env):
         # position values for the reference dummies
         self.ref_position_vectors = None
         self.ref_prev_position_vectors = None
-
-        '''variable regarding the rewards'''
-        # if a type of reward exceeds this (other than torque reward)-> set the next reward values to zero
-        self.early_termination = False
 
         # matrices for tremor propagation
         self.I, self.D, self.S = seven_by_seven()
@@ -371,7 +376,7 @@ class ExoskeletonEnv_train(gym.Env):
         np.random, seed = seeding.np_random(seed)
         return [seed]
 
-    def initialize_movement(self, evaluate):
+    def initialize_movement(self):
         # load the correct reference motion in
         self.processed_imu_data = read_env_texts("reference_motions/ref_motion_" + self.file_num + ".txt")  # dictionary of numpy arrays, contains the target values
         self.max_count = self.processed_imu_data["elbow_joint_y_positions"].size  # size of a numpy array
@@ -392,31 +397,8 @@ class ExoskeletonEnv_train(gym.Env):
         self.tremor_ang_acc_values[5, :] = self.tremor_torque_values[5, :] / self.hand_inertia
         self.tremor_ang_acc_values[6, :] = self.tremor_torque_values[6, :] / self.hand_inertia
 
-        # randomly sample the imu datas and pick randomly a time of the movement
-        # first is a boolean value if we want to initialize the movement at the beginning then it is true
-        # return a vector in the shape of observation space
-        if evaluate:
-            # then return the first elements of the processed imu list
-            self.counts = 2  # so we do not index out in the reward function
-
-        else:
-            random_index = random.randint(2, self.max_count - 1)
-            self.counts = random_index
-
-            if self.counts == self.max_count - 1:
-                self.counts = 2
-
-        # print(self.counts)
-
-        # set the simulation values to the corresponding values in the target dict
-        self.ep_state_values["elbow_joint_y_ang_acc"][0:self.counts] = 0
-        self.ep_state_values["elbow_joint_y_ang_vel"][0:self.counts] = 0
-        self.ep_state_values["shoulder_joint_x_ang_acc"][0:self.counts] = 0
-        self.ep_state_values["shoulder_joint_x_ang_vel"][0:self.counts] = 0
-        self.ep_state_values["shoulder_joint_y_ang_acc"][0:self.counts] = 0
-        self.ep_state_values["shoulder_joint_y_ang_vel"][0:self.counts] = 0
-        self.ep_state_values["shoulder_joint_z_ang_acc"][0:self.counts] = 0
-        self.ep_state_values["shoulder_joint_z_ang_vel"][0:self.counts] = 0
+        # Index in the loaded reference motion data (start from 2 for indexing reasons, and since past data is used in the obs)
+        self.counts = 2
 
         # set the corresponding joint angles--- differential eq initial conditions in the matlab script
         self.ep_state_values["elbow_joint_y_positions"][0:self.counts] = self.processed_imu_data["elbow_joint_y_positions"][0:self.counts]
@@ -586,15 +568,7 @@ class ExoskeletonEnv_train(gym.Env):
         actuator_torques = self.get_torques(force_components)
 
         # for debugging
-        # print("Given force in newtons: ", action)
-        # print("Torques applied to shoulder y: ", "actuator 3: ", actuator_torques["actuator3"][1], "actuator 4: ", actuator_torques["actuator4"][1], "actuator 5: ",
-        #       actuator_torques["actuator5"][1], "actuator 7: ", actuator_torques["actuator7"][1], "actuator 6: ", actuator_torques["actuator6"][1])
-        # print("Torques applied to shoulder x: ", "actuator 3: ", actuator_torques["actuator3"][0], "actuator 4: ", actuator_torques["actuator4"][0], "actuator 5: ",
-        #       actuator_torques["actuator5"][0], "actuator 7: ", actuator_torques["actuator7"][0], "actuator 6: ", actuator_torques["actuator6"][0])
-        # print("Torques applied to shoulder z: ", "actuator 3: ", actuator_torques["actuator3"][2], "actuator 4: ", actuator_torques["actuator4"][2], "actuator 5: ",
-        #       actuator_torques["actuator5"][2], "actuator 7: ", actuator_torques["actuator7"][2], "actuator 6: ", actuator_torques["actuator6"][2])
-        # print("Torques applied to elbow y: ", "actuator 1: ", abs(actuator_torques["actuator1"][1]), "actuator 2: ", -abs(actuator_torques["actuator2"][1]))
-        # print()
+        # self.debug_exoskeleton_torque_feedback(action, actuator_torques)
 
         # which actuator influences which joint: (same order as diff eq matrix shoulder y,x,z elbow y
         self.T_act = np.array([actuator_torques["actuator3"][1] + actuator_torques["actuator4"][1] + actuator_torques["actuator5"][1] + actuator_torques["actuator7"][1] +
@@ -644,70 +618,11 @@ class ExoskeletonEnv_train(gym.Env):
 
         self.client.stepSimulation()
 
-        # angular accelerations
-        self.ep_state_values["elbow_joint_y_ang_acc"][self.counts] = (self.processed_imu_data["elbow_joint_y_ang_acc"][self.counts] -
-                                                                      self.processed_imu_data["elbow_joint_y_ang_acc"][self.counts - 1]) + \
-                                                                     self.tremor_ang_acc_values[3, self.counts] + \
-                                                                     (actuator_torques["actuator1"][1] / self.forearm_inertia_y) - \
-                                                                     (actuator_torques["actuator2"][1] / self.forearm_inertia_y)
-
-        self.ep_state_values["shoulder_joint_x_ang_acc"][self.counts] = (self.processed_imu_data["shoulder_joint_x_ang_acc"][self.counts] -
-                                                                         self.processed_imu_data["shoulder_joint_x_ang_acc"][self.counts - 1]) + \
-                                                                        self.tremor_ang_acc_values[1, self.counts] + \
-                                                                        (actuator_torques["actuator3"][0] / (self.forearm_inertia_x + self.humerus_inertia_x)) + \
-                                                                        (actuator_torques["actuator4"][0] / (self.forearm_inertia_x + self.humerus_inertia_x)) + \
-                                                                        (actuator_torques["actuator5"][0] / (self.forearm_inertia_x + self.humerus_inertia_x)) + \
-                                                                        (actuator_torques["actuator7"][0] / (self.forearm_inertia_x + self.humerus_inertia_x)) - \
-                                                                        (actuator_torques["actuator6"][0] / (self.forearm_inertia_x + self.humerus_inertia_x))
-
-        self.ep_state_values["shoulder_joint_y_ang_acc"][self.counts] = (self.processed_imu_data["shoulder_joint_y_ang_acc"][self.counts] -
-                                                                         self.processed_imu_data["shoulder_joint_y_ang_acc"][self.counts - 1]) + \
-                                                                        self.tremor_ang_acc_values[0, self.counts] + \
-                                                                        (actuator_torques["actuator3"][1] / (self.forearm_inertia_y + self.humerus_inertia_y)) - \
-                                                                        (actuator_torques["actuator4"][1] / (self.forearm_inertia_y + self.humerus_inertia_y)) + \
-                                                                        (actuator_torques["actuator5"][1] / (self.forearm_inertia_y + self.humerus_inertia_y)) - \
-                                                                        (actuator_torques["actuator7"][1] / (self.forearm_inertia_y + self.humerus_inertia_y))
-
-        self.ep_state_values["shoulder_joint_z_ang_acc"][self.counts] = (self.processed_imu_data["shoulder_joint_z_ang_acc"][self.counts] -
-                                                                         self.processed_imu_data["shoulder_joint_z_ang_acc"][self.counts - 1]) + \
-                                                                        self.tremor_ang_acc_values[2, self.counts] + \
-                                                                        (actuator_torques["actuator3"][2] / (self.forearm_inertia_z + self.humerus_inertia_z)) - \
-                                                                        (actuator_torques["actuator4"][2] / (self.forearm_inertia_z + self.humerus_inertia_z)) + \
-                                                                        (actuator_torques["actuator5"][2] / (self.forearm_inertia_z + self.humerus_inertia_z)) - \
-                                                                        (actuator_torques["actuator7"][2] / (self.forearm_inertia_z + self.humerus_inertia_z))
-
-        # angular velocity values
-        self.ep_state_values["elbow_joint_y_ang_vel"][self.counts] = self.ep_state_values["elbow_joint_y_ang_vel"][self.counts - 1] + \
-                                                                     self.ep_state_values["elbow_joint_y_ang_acc"][self.counts] * self.dt
-
-        self.ep_state_values["shoulder_joint_x_ang_vel"][self.counts] = self.ep_state_values["shoulder_joint_x_ang_vel"][self.counts - 1] + \
-                                                                        self.ep_state_values["shoulder_joint_x_ang_acc"][self.counts] * self.dt
-
-        self.ep_state_values["shoulder_joint_y_ang_vel"][self.counts] = self.ep_state_values["shoulder_joint_y_ang_vel"][self.counts - 1] + \
-                                                                        self.ep_state_values["shoulder_joint_y_ang_acc"][self.counts] * self.dt
-
-        self.ep_state_values["shoulder_joint_z_ang_vel"][self.counts] = self.ep_state_values["shoulder_joint_z_ang_vel"][self.counts - 1] + \
-                                                                        self.ep_state_values["shoulder_joint_z_ang_acc"][self.counts] * self.dt
-
         # define whether the simulation is done
         done = False
 
-        # check if the new joint positions will not go over the movement boundaries
-        if self.shoulder_z_min_angle < self.ep_state_values["shoulder_joint_z_positions"][self.counts] < self.shoulder_z_max_angle and \
-                self.shoulder_y_min_angle < self.ep_state_values["shoulder_joint_y_positions"][self.counts] < self.shoulder_y_max_angle and \
-                self.shoulder_x_min_angle < self.ep_state_values["shoulder_joint_x_positions"][self.counts] < self.shoulder_x_max_angle and \
-                self.elbow_y_min_angle < self.ep_state_values["elbow_joint_y_positions"][self.counts] < self.elbow_y_max_angle:
-            extended_boundary = False
-        else:
-            extended_boundary = True
-            if (self.shoulder_z_min_angle < self.ep_state_values["shoulder_joint_z_positions"][self.counts] < self.shoulder_z_max_angle) != 1:
-                print("Agent went over the movement boundaries Shoulder z.", self.ep_state_values["shoulder_joint_z_positions"][self.counts])
-            elif (self.shoulder_y_min_angle < self.ep_state_values["shoulder_joint_y_positions"][self.counts] < self.shoulder_y_max_angle) != 1:
-                print("Agent went over the movement boundaries Shoulder y.", self.ep_state_values["shoulder_joint_y_positions"][self.counts])
-            elif (self.shoulder_x_min_angle < self.ep_state_values["shoulder_joint_x_positions"][self.counts] < self.shoulder_x_max_angle) != 1:
-                print("Agent went over the movement boundaries Shoulder x.", self.ep_state_values["shoulder_joint_x_positions"][self.counts])
-            else:
-                print("Agent went over the movement boundaries elbow y.", self.ep_state_values["elbow_joint_y_positions"][self.counts])
+        # check movement boundaries
+        self.check_movement_boundaries()
 
         # define the reward function
         reward = 0.0
@@ -719,10 +634,9 @@ class ExoskeletonEnv_train(gym.Env):
         weight_actuator_smoothness_reward = 0.05
         weight_unwanted_component = 0.4
 
-        if not done and self.early_termination is False:
+        if not done:
 
             # tremor reward values
-            # sparse reward enforcing that tremor reduction strategies involve all effected axis
             tremor_torque_reduction = (abs(torque_values) - abs(self.T)) / abs(self.T) * 100
             tremor_torque_reduction = np.nan_to_num(tremor_torque_reduction, nan=0, posinf=0, neginf=0)
 
@@ -732,9 +646,11 @@ class ExoskeletonEnv_train(gym.Env):
             sum_torque = 0
             sum_unwanted = 0
             for index in range(4):
-                if self.tremor_torque_places[index] == 1:  # todo: if no tremor reduction minimize it compared to 0
+                if self.tremor_torque_places[index] == 1:
+                    # if tremor is present on the joint axis calculate the tremor suppression
                     sum_torque += (abs(torque_values[index]) - abs(self.T[index])) / abs(self.T[index]) + 1
                 else:
+                    # else calculate how the exoskeleton interferes with the voluntary motion
                     sum_unwanted += abs(torque_values[index])
 
             # actuator force reward part
@@ -870,11 +786,17 @@ class ExoskeletonEnv_train(gym.Env):
         if self.counts >= self.max_count - 1:  # we have reached the end of the measurement in time
             done = True
 
-        # print the angle values
+        # DEBUG LINE: print the angle values
         # print(self.exoskeleton_sim_model.getJointPositions())
 
-        # self.T: Tremor torque, torque_values: all the torques (exo+tremor)
-        return np.array(self.state, dtype=np.float32), reward, done, self.T_act, torque_values, act_tremor_joint_angles, self.T, tremor_joint_angles, {}
+        truncated = False  # since we do not truncate the episodes
+        info = {"actuator_torques": self.T_act,
+                "torque_val": torque_values,
+                "ampl_val": act_tremor_joint_angles,
+                "tremor_torque_val": self.T,
+                "tremor_ampl_val": tremor_joint_angles}
+
+        return np.array(self.state, dtype=np.float32), reward, done, truncated, info
 
     def reset(self):
         self.actuator_forces = np.zeros(7)
@@ -884,10 +806,9 @@ class ExoskeletonEnv_train(gym.Env):
 
         # reload the exo
         self.exoskeleton_sim_model.load_again()
-        self.state = self.initialize_movement(evaluate=self.evaluate)
+        self.state = self.initialize_movement()
 
         score = self.counts
-        self.early_termination = False
 
         return self.state, score
 
@@ -903,10 +824,14 @@ class ExoskeletonEnv_train(gym.Env):
         max_values = self.tremor_torque_values.max(axis=1)
         return self.tremor_torque_places, max_values
 
-    def return_max_length(self):
+    def return_max_length(self) -> int:
         return self.max_count
 
-    def return_original_joint_angles(self):
+    def return_original_joint_angles(self) -> list:
+        """
+        :return: The original joint axes positions of the reference movement.
+         (wrist positions set to 0 since no IMU sensors were used to measure wrist positions)
+        """
         # returns the IMU measured values
         return [self.processed_imu_data["shoulder_joint_x_positions"][self.counts],
                 self.processed_imu_data["shoulder_joint_y_positions"][self.counts],
@@ -916,19 +841,29 @@ class ExoskeletonEnv_train(gym.Env):
                 0,
                 0]
 
+    def check_movement_boundaries(self) -> None:
+        """
+        Function that provides feedback if the agent's action causes an over extension in a joint axis.
+        """
+        if (self.shoulder_z_min_angle < self.ep_state_values["shoulder_joint_z_positions"][self.counts] < self.shoulder_z_max_angle) != 1:
+            print("Former_Agent went over the movement boundaries Shoulder z.", self.ep_state_values["shoulder_joint_z_positions"][self.counts])
+        elif (self.shoulder_y_min_angle < self.ep_state_values["shoulder_joint_y_positions"][self.counts] < self.shoulder_y_max_angle) != 1:
+            print("Former_Agent went over the movement boundaries Shoulder y.", self.ep_state_values["shoulder_joint_y_positions"][self.counts])
+        elif (self.shoulder_x_min_angle < self.ep_state_values["shoulder_joint_x_positions"][self.counts] < self.shoulder_x_max_angle) != 1:
+            print("Former_Agent went over the movement boundaries Shoulder x.", self.ep_state_values["shoulder_joint_x_positions"][self.counts])
+        elif (self.elbow_y_min_angle < self.ep_state_values["elbow_joint_y_positions"][self.counts] < self.elbow_y_max_angle) != 1:
+            print("Former_Agent went over the movement boundaries elbow y.", self.ep_state_values["elbow_joint_y_positions"][self.counts])
+
 
 if __name__ == "__main__":
-
     # values for the simulation
     mass = 81.5  # in kg
-    u_arm_weight, l_arm_weight, h_weight = calculate_body_part_mass(mass)
     sum_rewards = 0
     scores = []
-    client = bc.BulletClient(connection_mode=p.DIRECT)
 
-    env = ExoskeletonEnv_train(evaluation=True, dummy_shift=False, hum_weight=u_arm_weight, forearm_weight=l_arm_weight, forearm_height=0.4, forearm_radius=0.15, hum_height=0.4,
-                               hum_radius=0.15, hand_weight=h_weight, hand_radius=0.05, use_all_dof=False, reference_motion_file_num=str(7),
-                               tremor_sequence=np.array([0, 0, 0, 1, 0, 0, 0]), max_force_shoulder=30, max_force_elbow=18, client=client)
+    env = ExoskeletonEnv_train(dummy_shift=False, weight=mass, forearm_height=0.4, forearm_radius=0.15, hum_height=0.4,
+                               hum_radius=0.15, hand_radius=0.05, use_all_dof=False, reference_motion_file_num=str(7),
+                               tremor_sequence=np.array([0, 0, 0, 1, 0, 0, 0]), max_force_shoulder=30, max_force_elbow=18)
 
     # test the running of the environment
     for i in range(1):

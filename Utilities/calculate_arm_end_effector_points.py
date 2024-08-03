@@ -15,7 +15,6 @@ def homogeneous_transformation_matrix(alpha, a, d, theta):
     ])
 
 
-
 def forward_kinematics(theta_values, L1, L2, L3):
     # Denavit-Hartenberg Parameters
     # L1: length between shoulder and elbow joints aka humerus length
