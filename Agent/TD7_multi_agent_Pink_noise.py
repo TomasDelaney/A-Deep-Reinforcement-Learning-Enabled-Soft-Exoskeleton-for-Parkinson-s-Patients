@@ -1,10 +1,12 @@
 import copy
 from dataclasses import dataclass
 from typing import Callable
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from Agent.TD7_buffer_multi_agent import LAP
+from Agent.Pink_noise import ColoredActionNoise
 
 
 @dataclass
@@ -15,6 +17,10 @@ class Hyperparameters:
     discount: float = 0.99
     target_update_rate: int = 250
     exploration_noise: float = 0.1
+
+    # Pink noise
+    beta: float = 1
+    noise_scale: float = 0.3
 
     # TD3
     target_policy_noise: float = 0.2
@@ -45,7 +51,7 @@ class Hyperparameters:
     critic_lr: float = 3e-4
 
     # Actor Model
-    actor_hdim: int = 320
+    actor_hdim: int = 300
     actor_activ: Callable = F.relu
     actor_lr: float = 3e-4
 
@@ -141,7 +147,8 @@ class Critic(nn.Module):
 
 
 class Agent(object):
-    def __init__(self, state_dim, action_dim, max_action, learning_steps=500000, offline=False, hp=Hyperparameters(), env_num=15):
+    def __init__(self, state_dim, action_dim, max_action, learning_steps: int = 6000000,
+                 offline=False, hp=Hyperparameters(), env_num: int = 15, ep_length: int = 300):
         # Changing hyperparameters example: hp=Hyperparameters(batch_size=128)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -189,7 +196,16 @@ class Agent(object):
         self.action_noise_decrease = hp.exploration_noise / learning_steps
         self.policy_noise_decrease = hp.target_policy_noise / learning_steps
 
-    def select_action(self, state, use_checkpoint=False, use_exploration=True):
+        # Pink noise
+        self.ep_length = ep_length
+        self.action_dim = action_dim
+
+    def init_episode_noise(self):
+        self.noise = ColoredActionNoise(self.hp.beta, self.hp.noise_scale, self.ep_length, self.action_dim)
+        self.noise = self.noise.gen.buffer / np.max(np.abs(self.noise.gen.buffer))
+        self.noise = self.noise * self.hp.exploration_noise
+
+    def select_action(self, state, timestep=None, first_step=True, use_checkpoint=False, use_exploration=True):
         with torch.no_grad():
             state = torch.from_numpy(state).float().to(self.device)
 
@@ -203,10 +219,13 @@ class Agent(object):
             action = action.cpu().data.numpy()
 
             if use_exploration:
-                action = action + torch.randn_like(action) * self.hp.exploration_noise
+                if first_step:
+                    self.init_episode_noise()
+
+                action = action + self.noise[:, timestep]
                 self.hp.exploration_noise -= self.action_noise_decrease
 
-            return action.clamp(-1, 1).cpu().data.numpy().flatten() * self.max_action
+            return action.clip(-1, 1) * self.max_action
 
     def train(self):
         self.training_steps += 1

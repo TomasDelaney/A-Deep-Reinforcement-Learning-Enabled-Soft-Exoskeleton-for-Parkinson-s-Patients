@@ -65,56 +65,9 @@ def define_empty_dict_for_env(size):
                          "shoulder_joint_x_positions": np.zeros((size,)),
                          "shoulder_joint_y_positions": np.zeros((size,)),
                          "shoulder_joint_z_positions": np.zeros((size,)),
-                         "elbow_joint_x_acc": np.zeros((size,)),
-                         "elbow_joint_y_acc": np.zeros((size,)),
-                         "elbow_joint_z_acc": np.zeros((size,)),
-                         "elbow_joint_x_vel": np.zeros((size,)),
-                         "elbow_joint_y_vel": np.zeros((size,)),
-                         "elbow_joint_z_vel": np.zeros((size,)),
-                         "elbow_joint_x_ang_acc": np.zeros((size,)),
-                         "elbow_joint_y_ang_acc": np.zeros((size,)),
-                         "elbow_joint_z_ang_acc": np.zeros((size,)),
-                         "elbow_joint_x_ang_vel": np.zeros((size,)),
-                         "elbow_joint_y_ang_vel": np.zeros((size,)),
-                         "elbow_joint_z_ang_vel": np.zeros((size,)),
-                         "shoulder_joint_x_acc": np.zeros((size,)),
-                         "shoulder_joint_y_acc": np.zeros((size,)),
-                         "shoulder_joint_z_acc": np.zeros((size,)),
-                         "shoulder_joint_x_vel": np.zeros((size,)),
-                         "shoulder_joint_y_vel": np.zeros((size,)),
-                         "shoulder_joint_z_vel": np.zeros((size,)),
-                         "shoulder_joint_x_ang_acc": np.zeros((size,)),
-                         "shoulder_joint_y_ang_acc": np.zeros((size,)),
-                         "shoulder_joint_z_ang_acc": np.zeros((size,)),
-                         "shoulder_joint_x_ang_vel": np.zeros((size,)),
-                         "shoulder_joint_y_ang_vel": np.zeros((size,)),
-                         "shoulder_joint_z_ang_vel": np.zeros((size,)),
                          }
 
     return return_dictionary
-
-
-def get_min_max_env_values(env_dict):
-    return_dict = [
-        np.min(env_dict["elbow_joint_y_acc"]), np.max(env_dict["elbow_joint_y_acc"]),
-        np.min(env_dict["shoulder_joint_x_acc"]), np.max(env_dict["shoulder_joint_x_acc"]),
-        np.min(env_dict["shoulder_joint_y_acc"]), np.max(env_dict["shoulder_joint_y_acc"]),
-        np.min(env_dict["shoulder_joint_z_acc"]), np.max(env_dict["shoulder_joint_z_acc"]),
-        np.min(env_dict["elbow_joint_y_ang_acc"]), np.max(env_dict["elbow_joint_y_ang_acc"]),
-        np.min(env_dict["shoulder_joint_x_ang_acc"]), np.max(env_dict["shoulder_joint_x_ang_acc"]),
-        np.min(env_dict["shoulder_joint_y_ang_acc"]), np.max(env_dict["shoulder_joint_y_ang_acc"]),
-        np.min(env_dict["shoulder_joint_z_ang_acc"]), np.max(env_dict["shoulder_joint_z_ang_acc"]),
-        np.min(env_dict["elbow_joint_y_vel"]), np.max(env_dict["elbow_joint_y_vel"]),
-        np.min(env_dict["shoulder_joint_x_vel"]), np.max(env_dict["shoulder_joint_x_vel"]),
-        np.min(env_dict["shoulder_joint_y_vel"]), np.max(env_dict["shoulder_joint_y_vel"]),
-        np.min(env_dict["shoulder_joint_z_vel"]), np.max(env_dict["shoulder_joint_z_vel"]),
-        np.min(env_dict["elbow_joint_y_ang_vel"]), np.max(env_dict["elbow_joint_y_ang_vel"]),
-        np.min(env_dict["shoulder_joint_x_ang_vel"]), np.max(env_dict["shoulder_joint_x_ang_vel"]),
-        np.min(env_dict["shoulder_joint_y_ang_vel"]), np.max(env_dict["shoulder_joint_y_ang_vel"]),
-        np.min(env_dict["shoulder_joint_z_ang_vel"]), np.max(env_dict["shoulder_joint_z_ang_vel"]),
-    ]
-
-    return return_dict
 
 
 def read_env_texts(text_file_name):

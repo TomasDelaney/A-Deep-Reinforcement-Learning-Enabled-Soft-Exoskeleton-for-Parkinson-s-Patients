@@ -4,11 +4,11 @@ import numpy as np
 
 
 class ExoskeletonSimModel:
-    def __init__(self, dummy_shift, client):
+    def __init__(self, client, dummy_shift_range: float):
         """
         Pybullet simulation model, that models the exoskeleton-human skeleton interactions.
-        :param dummy_shift: An optional boolean parameter which accounts for the shift in the end position of the actuators
         :param client: The Pybullet client where the simulation is running
+        :param dummy_shift_range: The range of possible shift in each coordinate of an actuator end position
         """
         super(self.__class__, self).__init__()
         file_name = "../Simulation/exo_v3.urdf"
@@ -16,7 +16,6 @@ class ExoskeletonSimModel:
 
         self.client = client
         self.exo = self.client.loadURDF(fileName=self.file_path, basePosition=[0, 0, 0.1], physicsClientId=client._client, useFixedBase=True)
-        self.dummy_shift = dummy_shift  # boolean value
 
         # human skeleton joint handles
         self.shoulder_z_joint_handle = 0
@@ -92,6 +91,21 @@ class ExoskeletonSimModel:
         self.elbow_y_joint_pos_vect = np.zeros(3)
         self.elbow_z_joint_pos_vect = np.zeros(3)
 
+        # dummy shift coordinates
+        self.dummy_shift_range = dummy_shift_range
+        self.dummy_shift_coordinates = np.zeros((14, 3))
+
+    def create_dummy_shift(self):
+        """
+        Adds domain randomization to the shift in the Velcro fixed actuator end positions
+        :return: initialises the coordinates of this shift at the beginning of the episode
+        """
+        self.dummy_shift_coordinates = np.random.uniform(
+            low=-self.dummy_shift_range,
+            high=self.dummy_shift_range,
+            size=(14, 3)
+        )
+
     def set_joint_position(self, position) -> None:
         """
         Function that sets the joint positions in the Pybullet simulation
@@ -102,9 +116,9 @@ class ExoskeletonSimModel:
                                               controlMode=p.POSITION_CONTROL,
                                               targetPositions=position)  # physicsClientId=self.exo
 
-    def get_actuator_positions(self) -> np.ndarray:
+    def get_actuator_positions(self) -> None:
         """
-        Function that returns the actuator dummy positions
+        Function that updates the actuator dummy positions
 
         :return:
             np.ndarray: in 14x3 shape, where 14 end effector points of the actuators (2 for each) are described by their
@@ -128,22 +142,20 @@ class ExoskeletonSimModel:
         actuator_positions[13] = self.client.getLinkState(self.exo, linkIndex=self.act72_handle)[0]
 
         # set the act positions to the corresponding values
-        self.act11_positions = actuator_positions[0]
-        self.act12_positions = actuator_positions[1]
-        self.act21_positions = actuator_positions[2]
-        self.act22_positions = actuator_positions[3]
-        self.act31_positions = actuator_positions[4]
-        self.act32_positions = actuator_positions[5]
-        self.act41_positions = actuator_positions[6]
-        self.act42_positions = actuator_positions[7]
-        self.act51_positions = actuator_positions[8]
-        self.act52_positions = actuator_positions[9]
-        self.act61_positions = actuator_positions[10]
-        self.act62_positions = actuator_positions[11]
-        self.act71_positions = actuator_positions[12]
-        self.act72_positions = actuator_positions[13]
-
-        return actuator_positions
+        self.act11_positions = actuator_positions[0] + self.dummy_shift_coordinates[0]
+        self.act12_positions = actuator_positions[1] + self.dummy_shift_coordinates[1]
+        self.act21_positions = actuator_positions[2] + self.dummy_shift_coordinates[2]
+        self.act22_positions = actuator_positions[3] + self.dummy_shift_coordinates[3]
+        self.act31_positions = actuator_positions[4] + self.dummy_shift_coordinates[4]
+        self.act32_positions = actuator_positions[5] + self.dummy_shift_coordinates[5]
+        self.act41_positions = actuator_positions[6] + self.dummy_shift_coordinates[6]
+        self.act42_positions = actuator_positions[7] + self.dummy_shift_coordinates[7]
+        self.act51_positions = actuator_positions[8] + self.dummy_shift_coordinates[8]
+        self.act52_positions = actuator_positions[9] + self.dummy_shift_coordinates[9]
+        self.act61_positions = actuator_positions[10] + self.dummy_shift_coordinates[10]
+        self.act62_positions = actuator_positions[11] + self.dummy_shift_coordinates[11]
+        self.act71_positions = actuator_positions[12] + self.dummy_shift_coordinates[12]
+        self.act72_positions = actuator_positions[13] + self.dummy_shift_coordinates[13]
 
     def get_actuator_pos_vect(self) -> dict:
         return_pos_vectors = {"actuator1": np.array([(self.act12_positions[0] - self.act_elbow_reference_positions[0]),
@@ -340,7 +352,7 @@ class ExoskeletonSimModel:
 
     def load_again(self) -> None:
         """
-        Function that reloads the URDF scene of the simulation
+        Function that reloads the scene of the simulation
         """
         self.exo = self.client.loadURDF(fileName=self.file_path,
                                         basePosition=[0, 0, 0.1],
