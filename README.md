@@ -5,7 +5,7 @@ Official implementation for the code used in:
 
 ---
 
-![Simulation Process](https://github.com/TomasDelaney/A-Deep-Reinforcement-Learning-Enabled-Soft-Exoskeleton-for-Parkinson-s-Patients/raw/0db2b966306e3963f3e7837c431a05a3b5e0fc30/Images/Simulation_process_figure.pdf)
+![Simulation Process](https://github.com/TomasDelaney/A-Deep-Reinforcement-Learning-Enabled-Soft-Exoskeleton-for-Parkinson-s-Patients/raw/f688bda4fd42742b4361807146930cc67efa8a20/Images/Simulation_process.png)
 
 ## Usage:
 ### Agent:
