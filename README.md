@@ -1,6 +1,11 @@
 # A-Deep-Reinforcement-Learning-Enabled-Soft-Exoskeleton-for-Parkinson-s-Patients
 
-Official implementation for the code used in: Learning to Suppress Tremors: A Deep Reinforcement Learning-Enabled Soft Exoskeleton for Parkinson's Patients
+Official implementation for the code used in:  
+**[Learning to Suppress Tremors: A Deep Reinforcement Learning-Enabled Soft Exoskeleton for Parkinson's Patients](https://www.frontiersin.org/articles/10.3389/frobt.2025.1537470/full)**
+
+---
+
+![Simulation Process](https://github.com/TomasDelaney/A-Deep-Reinforcement-Learning-Enabled-Soft-Exoskeleton-for-Parkinson-s-Patients/raw/0db2b966306e3963f3e7837c431a05a3b5e0fc30/Images/Simulation_process_figure.pdf)
 
 ## Usage:
 ### Agent:
