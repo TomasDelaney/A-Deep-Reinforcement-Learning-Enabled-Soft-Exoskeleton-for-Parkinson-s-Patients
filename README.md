@@ -1,4 +1,14 @@
-# A-Deep-Reinforcement-Learning-Enabled-Soft-Exoskeleton-for-Parkinson-s-Patients
+<h1 align="center">
+  Learning to Suppress Tremors:<br>
+  A Deep Reinforcement Learning-Enabled Soft Exoskeleton for Parkinson's Patients
+</h1>
+
+<p align="center">
+  <b>Tamás Endrei<sup>1,2*</sup>, Sándor Földi<sup>1,2</sup>, Ádám Makk<sup>3</sup>, and György Cserey<sup>1,2*</sup></b><br>
+  <sup>1</sup>Faculty of Information Technology and Bionics, Pázmány Péter Catholic University, Budapest, Hungary<br>
+  <sup>2</sup>Jedlik Innovation Ltd., Budapest, Hungary<br>
+  <sup>3</sup>András Pető Faculty, Semmelweis University, Budapest, Hungary
+</p>
 
 Official implementation for the code used in:  
 **[Learning to Suppress Tremors: A Deep Reinforcement Learning-Enabled Soft Exoskeleton for Parkinson's Patients](https://www.frontiersin.org/articles/10.3389/frobt.2025.1537470/full)**
@@ -49,3 +59,20 @@ The evaluation logs hold the logs used to determine the tremor suppressing effec
 * Python: 3.10
 * Pytorch: 1.12.1
 * SciPy: 1.11.4
+
+<details>
+<summary><h2>Citation</h2></summary>
+
+If you found this repository useful, please consider citing:
+
+```bibtex
+@ARTICLE{endrei2025learning,
+  AUTHOR={Endrei, Tamás and Földi, Sándor and Makk, Ádám and Cserey, György},
+  TITLE={Learning to suppress tremors: a deep reinforcement learning-enabled soft exoskeleton for Parkinson’s patients},
+  JOURNAL={Frontiers in Robotics and AI},
+  VOLUME={Volume 12 - 2025},
+  YEAR={2025},
+  URL={[https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2025.1537470](https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2025.1537470)},
+  DOI={10.3389/frobt.2025.1537470},
+  ISSN={2296-9144},
+}
