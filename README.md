@@ -60,8 +60,7 @@ The evaluation logs hold the logs used to determine the tremor suppressing effec
 * Pytorch: 1.12.1
 * SciPy: 1.11.4
 
-<details>
-<summary><h2>Citation</h2></summary>
+## 📚 Citation
 
 If you found this repository useful, please consider citing:
 
@@ -72,7 +71,8 @@ If you found this repository useful, please consider citing:
   JOURNAL={Frontiers in Robotics and AI},
   VOLUME={Volume 12 - 2025},
   YEAR={2025},
-  URL={[https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2025.1537470](https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2025.1537470)},
+  URL={https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2025.1537470},
   DOI={10.3389/frobt.2025.1537470},
   ISSN={2296-9144},
 }
+
